@@ -92,7 +92,7 @@ if ("speechSynthesis" in window && SpeechRecognition) {
     fullTranscript += (fullTranscript ? ' ' : '') + transcript;
     let isIncomplete = await preprocessUserMessage(apiKey, transcript);
     console.log('isIncomplete:', isIncomplete);
-  
+
     async function getNextTranscript() {
       return new Promise((resolve) => {
         recognition.onresult = (event) => {
@@ -104,7 +104,7 @@ if ("speechSynthesis" in window && SpeechRecognition) {
         };
       });
     }
-  
+
     while (isIncomplete) {
       const nextTranscript = await getNextTranscript();
       console.log('Next Transcript:', nextTranscript);
@@ -112,8 +112,8 @@ if ("speechSynthesis" in window && SpeechRecognition) {
       isIncomplete = await preprocessUserMessage(apiKey, fullTranscript);
       console.log('isIncomplete:', isIncomplete);
     }
-  
-  
+
+
     // Update conversationHistory outside the while loop
     conversationHistory.push({
       role: 'user',
@@ -199,7 +199,7 @@ if ("speechSynthesis" in window && SpeechRecognition) {
 async function getAssistantResponse(apiKey, messages) {
   console.log('messages:', JSON.stringify(messages, null, 2));
   console.log('headers:', JSON.stringify({
-    'Content-Type': 'application/json','Authorization': `Bearer ${apiKey}`,
+    'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}`,
   }, null, 2));
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
