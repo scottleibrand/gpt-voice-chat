@@ -197,28 +197,28 @@ if ("speechSynthesis" in window && SpeechRecognition) {
 }
 
 async function getAssistantResponse(apiKey, messages) {
-  console.log('messages:', JSON.stringify(messages, null, 2));
-  console.log('headers:', JSON.stringify({
-    'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}`,
+  //console.log('messages:', JSON.stringify(messages, null, 2));
+  //console.log('headers:', JSON.stringify({
+  'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}`,
   }, null, 2));
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-3.5-turbo',
-      messages: messages,
-    }),
-  });
+const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${apiKey}`,
+  },
+  body: JSON.stringify({
+    model: 'gpt-3.5-turbo',
+    messages: messages,
+  }),
+});
 
-  if (response.ok) {
-    const data = await response.json();
-    return data.choices[0].message.content;
-  } else {
-    throw new Error('Failed to get a response from the OpenAI API');
-  }
+if (response.ok) {
+  const data = await response.json();
+  return data.choices[0].message.content;
+} else {
+  throw new Error('Failed to get a response from the OpenAI API');
+}
 }
 
 function displayAndSpeakResponse(message) {
