@@ -47,34 +47,32 @@ if ("speechSynthesis" in window && SpeechRecognition) {
     }
   });
 
+  let fullTranscript = '';
   async function handleRecognizedSpeech(apiKey, transcript) {
     output.innerHTML += 'Initial Transcript: ' + transcript + '<br>';
-    let fullTranscript = transcript;
     let isIncomplete = await preprocessUserMessage(apiKey, transcript);
     console.log('isIncomplete:', isIncomplete);
-
-    function handleNextTranscript(callback) {
-      recognition.onresult = (event) => {
-        const newTranscript = event.results[event.results.length - 1][0].transcript.trim();
-        if (event.results[event.results.length - 1].isFinal) {
-          callback(newTranscript);
-        }
-      };
-    }
-
-    while (isIncomplete) {
-      const nextTranscript = await new Promise((resolve) => {
-        handleNextTranscript((newTranscript) => {
-          resolve(newTranscript);
-        });
+  
+    async function getNextTranscript() {
+      return new Promise((resolve) => {
+        recognition.onresult = (event) => {
+          const newTranscript = event.results[event.results.length - 1][0].transcript.trim();
+          if (event.results[event.results.length - 1].isFinal) {
+            resolve(newTranscript);
+          }
+        };
       });
-
+    }
+  
+    while (isIncomplete) {
+      const nextTranscript = await getNextTranscript();
       console.log('Next Transcript:', nextTranscript);
-      fullTranscript += ' ' + nextTranscript;
+      fullTranscript += (fullTranscript ? ' ' : '') + nextTranscript;
       isIncomplete = await preprocessUserMessage(apiKey, fullTranscript);
       console.log('isIncomplete:', isIncomplete);
     }
-
+  
+  
     // Update conversationHistory outside the while loop
     conversationHistory.push({
       role: 'user',
@@ -100,7 +98,11 @@ if ("speechSynthesis" in window && SpeechRecognition) {
     } catch (error) {
       output.innerHTML += 'Error: ' + error.message + '<br>';
     }
+
+    // Reset fullTranscript for the next conversation
+    fullTranscript = '';
   }
+
 
   recognition.addEventListener('speechstart', () => {
     if (speechSynthesis.speaking) {
