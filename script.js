@@ -3,23 +3,63 @@ const stopButton = document.getElementById("stopButton");
 const toggleSpeechButton = document.getElementById("toggleSpeechButton");
 const output = document.getElementById("output");
 let userIsSpeaking = false;
+const submitButton = document.getElementById("submitButton");
+
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+let fullTranscript = '';
+let speakText = false;
+
+let conversationHistory = [
+  {
+    role: 'system',
+    content:
+      'You are a helpful assistant accessed via a voice interface from Apple devices. Your responses will be read aloud to the user. Please keep your responses brief. If you have a long response, ask the user if they want you to continue. If the user’s input doesn’t quite make sense, it might have been dictated incorrectly: feel free to guess what they really said.',
+  },
+];
+
+async function submitConversation() {
+  console.log('Submit pressed. fullTranscript:', fullTranscript);
+  if (fullTranscript) {
+    submitButton.disabled = true;
+    // Update conversationHistory
+    conversationHistory.push({
+      role: 'user',
+      content: fullTranscript,
+    });
+
+    // Get and display the assistant's response
+    try {
+      const apiKey = document.getElementById('api_key').value;
+      const assistantResponse = await getAssistantResponse(apiKey, conversationHistory);
+      conversationHistory.push({
+        role: 'assistant',
+        content: assistantResponse,
+      });
+
+      output.innerHTML += 'User: ' + fullTranscript + '<br>';
+      output.innerHTML += 'Assistant: ' + assistantResponse + '<br>';
+
+      if (speakText) {
+        const utterance = new SpeechSynthesisUtterance(assistantResponse);
+        speechSynthesis.speak(utterance);
+      }
+    } catch (error) {
+      output.innerHTML += 'Error: ' + error.message + '<br>';
+    }
+
+    // Reset fullTranscript for the next conversation
+    fullTranscript = '';
+  }
+}
 
 if ("speechSynthesis" in window && SpeechRecognition) {
   const recognition = new SpeechRecognition();
   recognition.continuous = true;
   recognition.interimResults = true;
 
-  let speakText = false;
-  let apiKey;
-  let conversationHistory = [
-    {
-      role: 'system',
-      content:
-        'You are a helpful assistant accessed via a voice interface from Apple devices. Your responses will be read aloud to the user. Please keep your responses brief. If you have a long response, ask the user if they want you to continue. If the user’s input doesn’t quite make sense, it might have been dictated incorrectly: feel free to guess what they really said.',
-    },
-  ];
+
 
   async function preprocessUserMessage(apiKey, message) {
     const preprocessMessage = {
@@ -47,9 +87,9 @@ if ("speechSynthesis" in window && SpeechRecognition) {
     }
   });
 
-  let fullTranscript = '';
   async function handleRecognizedSpeech(apiKey, transcript) {
     output.innerHTML += 'Initial Transcript: ' + transcript + '<br>';
+    fullTranscript += (fullTranscript ? ' ' : '') + transcript;
     let isIncomplete = await preprocessUserMessage(apiKey, transcript);
     console.log('isIncomplete:', isIncomplete);
   
@@ -58,6 +98,7 @@ if ("speechSynthesis" in window && SpeechRecognition) {
         recognition.onresult = (event) => {
           const newTranscript = event.results[event.results.length - 1][0].transcript.trim();
           if (event.results[event.results.length - 1].isFinal) {
+            submitButton.disabled = false;
             resolve(newTranscript);
           }
         };
@@ -67,7 +108,7 @@ if ("speechSynthesis" in window && SpeechRecognition) {
     while (isIncomplete) {
       const nextTranscript = await getNextTranscript();
       console.log('Next Transcript:', nextTranscript);
-      fullTranscript += (fullTranscript ? ' ' : '') + nextTranscript;
+      //fullTranscript += (fullTranscript ? ' ' : '') + nextTranscript;
       isIncomplete = await preprocessUserMessage(apiKey, fullTranscript);
       console.log('isIncomplete:', isIncomplete);
     }
@@ -156,6 +197,10 @@ if ("speechSynthesis" in window && SpeechRecognition) {
 }
 
 async function getAssistantResponse(apiKey, messages) {
+  console.log('messages:', JSON.stringify(messages, null, 2));
+  console.log('headers:', JSON.stringify({
+    'Content-Type': 'application/json','Authorization': `Bearer ${apiKey}`,
+  }, null, 2));
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
